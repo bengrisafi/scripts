@@ -1,0 +1,23 @@
+execute pathogen#infect()
+set number
+filetype on
+syntax on
+filetype plugin on
+filetype indent on
+"no wrap of line"
+"set nowrap
+"set tabs to 2 spaces"
+set tabstop=2
+set shiftwidth=2
+set expandtab
+set smartindent
+set autoindent
+set showmatch
+"sets tab completion"
+set wildmode=longest,list,full
+set wildmenu
+colorscheme torte
+set fileformat=unix
+set fileformats=unix,dos
+set visualbell
+set t_vb=
