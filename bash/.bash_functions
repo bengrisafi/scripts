@@ -43,12 +43,71 @@ function testsites {
   printf '%s\n' "${errors[@]}"
   echo "$(timestamp) Finished site check"
 }
+function GET-EC2-USAGE(){
+  if [[ $# -le 0 ]]; then
+    echo -e "$1 is not a valid option\n"
+  fi
+cat <<-EOF
+  get-ec2 - Get ec2 machines based off the tag names (owner and name) and get back their private ip, name and status   
+
+     Options
+       -o, --owner - owner of the ec2 machines
+       -e, --env - name of the env of the machines
+       -p, --profile - aws profile to use
+       -ip_only - get only ip address back
+       -h, --help
+
+     ex.
+       get-ec2 -o SI -e SHARED-DEV -p NonProd -ip_only
+EOF
+}
 
 function get-ec2(){
-  owner=$1
-  env=$2
-  profile=$3
-
+  owner=""
+  env=""
+  profile=""
+  ip_only=false
+  if [ "$#" -le 1 ]
+    then
+      GET-EC2-USAGE $1
+      return 1
+  fi
+    while [ "$#" -gt 0 ]
+    do
+      key="$1"
+      value="$2"
+#      echo key is $key
+#      echo value is $value
+      case "$key" in
+        -h|--help)
+          SET-DOCKER-USAGE
+          return 8
+          ;;
+        -o|--owner)
+          owner="$value"
+          shift
+          shift
+          ;;
+        -e|--env)
+          env="$value"
+          shift
+          shift
+          ;;
+        -p|--profile)
+          profile="$value"
+          shift
+          shift
+          ;;
+        -ip_only)
+          ip_only=true
+          shift;
+          ;;
+        *)
+          GET-EC2-USAGE $2
+          return 4
+          ;;
+      esac
+    done
   # check for null owner, needed arg
   if [[ -z "$owner" ]]; then
     echo "No Arguments provided. ex. get_ec2 VMS DEV"
@@ -61,14 +120,18 @@ function get-ec2(){
   fi
   output=''
   # specify if we want all machines we own or just a partiular env
+  filter='.Reservations[].Instances[] | [.PrivateIpAddress, .State.Name, (.Tags[]|select(.Key=="Name")|.Value)]'
+  if [[ $ip_only ]]; then
+    filter='.Reservations[].Instances[] | .PrivateIpAddress'
+  fi
   if [[ -z "$env" ]]; then
     aws ec2 describe-instances \
       --profile $profile \
       --filters Name=tag:Owner,Values="$owner" \
-      | jq '.Reservations[].Instances[] | [.PrivateIpAddress, .State.Name, (.Tags[]|select(.Key=="Name")|.Value)]' -c \
+      | jq "$filter" -c \
       | sort -V 
   else
-     aws ec2 describe-instances --profile $profile --filters Name=tag:Owner,Values="$owner",Name=tag:Name,Values=*$env* | jq -r '.Reservations[].Instances[] | [.PrivateIpAddress, .State.Name, (.Tags[]|select(.Key=="Name")|.Value)] ' -c | sort -V 
+     aws ec2 describe-instances --profile $profile --filters Name=tag:Owner,Values="$owner",Name=tag:Name,Values=*$env* | jq -r "$filter" -c | sort -V 
    fi
 }
 
