@@ -79,11 +79,16 @@ function get-awstoken {
   sn=""
   mfaprofile=""
   echo getting the right arn
-  if [ $profile == "ProdEU" ]
+  if [ $profile == "prodeu" ]
   then
     mfaprofile="ProdEUMFA"
     region="eu-central-1"
     sn="arn:aws:iam::862092865200:mfa/ben.grisafi"
+  elif [ $profile == "prodca" ]
+  then
+    mfaprofile="ProdCAMFA"
+    region="ca-central-1"
+    sn="arn:aws:iam::706300911483:mfa/ben.grisafi"
   else
     echo profile is $profile
     mfaprofile="ProdMFA"
@@ -169,18 +174,18 @@ function set-docker {
       echo we are prod baby
       echo backend-$env.tfvars
       terraform workspace select default
-      rm  -r /mnt/c/Users/ben.grisafi/Source/terraswarm/.terraform
+      #rm  -r /mnt/c/Users/ben.grisafi/Source/terraswarm/.terraform
       terraform init -backend-config=backend-$env.tfvars
       terraform workspace select ${env}
     else
       if [[ -d "/.terraform" ]]
       then
         terraform workspace select default
-        rm  -r /mnt/c/Users/ben.grisafi/Source/terraswarm/.terraform
-        terraform init -backend-config=backend-$env.tfvars
+        #rm  -r /mnt/c/Users/ben.grisafi/Source/terraswarm/.terraform
+        terraform init -backend-config=backend-nonprod.tfvars
         terraform workspace select ${env}
       else
-        terraform workspace select shared-$env
+        terraform workspace select $env
       fi
     fi
     echo selected workspace
@@ -188,17 +193,17 @@ function set-docker {
     host="${command##ssh ubuntu@}"
     echo "dns is $host"
     case $env in
-      dev)
+      shared-dev)
         export DOCKER_HOST="tcp://$host:2370"
         cd $currentdir
         return 0
         ;;
-      qa)
+      shared-qa)
         export DOCKER_HOST="tcp://$host:2370"
         cd $currentdir
         return 0
         ;;
-      stg)
+      shared-stg)
         export DOCKER_HOST="tcp://$host:2370"
         cd $currentdir
         return 0
